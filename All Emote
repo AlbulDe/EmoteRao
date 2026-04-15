@@ -1,165 +1,130 @@
 local UIS = game:GetService("UserInputService") 
 local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
 
-local LocalPlayer = Players.LocalPlayer
-
--- [ 1. CLEANUP ]
-if CoreGui:FindFirstChild("CustomEmoteSystem") then
-    CoreGui["CustomEmoteSystem"]:Destroy()
+-- Iwas sa duplicate UI
+if CoreGui:FindFirstChild("OpenEmote (Mobile)") then
+    CoreGui["OpenEmote (Mobile)"]:Destroy()
 end
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CustomEmoteSystem"
-ScreenGui.Parent = CoreGui
-ScreenGui.IgnoreGuiInset = true
-
--- [ 2. CIRCLE MENU BUTTON (DRAGGABLE) ]
-local MenuBtn = Instance.new("ImageButton")
-MenuBtn.Name = "MenuBtn"
-MenuBtn.Parent = ScreenGui
-MenuBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MenuBtn.Position = UDim2.new(0.5, 0, 0.05, 0)
-MenuBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-MenuBtn.Size = UDim2.new(0, 45, 0, 45)
-MenuBtn.ZIndex = 100
-MenuBtn.Image = "rbxassetid://85867483111516"
-MenuBtn.ImageColor3 = Color3.fromRGB(0, 255, 150)
-
-Instance.new("UICorner", MenuBtn).CornerRadius = UDim.new(1, 0)
-local btnStroke = Instance.new("UIStroke", MenuBtn)
-btnStroke.Thickness = 2
-btnStroke.Color = Color3.fromRGB(0, 255, 150)
-
--- [ 3. MAIN UI PANEL ]
-local MainPanel = Instance.new("Frame")
-MainPanel.Name = "MainPanel"
-MainPanel.Parent = ScreenGui
-MainPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
-MainPanel.Position = UDim2.new(0.5, -140, 0.5, -150)
-MainPanel.Size = UDim2.new(0, 280, 0, 300)
-MainPanel.Visible = false
-MainPanel.ClipsDescendants = true
-MainPanel.ZIndex = 200
-
-Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 10)
-local panelStroke = Instance.new("UIStroke", MainPanel)
-panelStroke.Color = Color3.fromRGB(40, 40, 45)
-
--- [ 4. TOP BAR (Search + X) ]
-local TopBar = Instance.new("Frame")
-TopBar.Name = "TopBar"
-TopBar.Parent = MainPanel
-TopBar.Size = UDim2.new(1, 0, 0, 45)
-TopBar.BackgroundTransparency = 1
-
-local SearchBar = Instance.new("TextBox")
-SearchBar.Name = "SearchBar"
-SearchBar.Parent = TopBar
-SearchBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-SearchBar.Position = UDim2.new(0, 10, 0, 10)
-SearchBar.Size = UDim2.new(1, -60, 0, 25) -- Binigyan ng space yung X
-SearchBar.PlaceholderText = "Search..."
-SearchBar.Text = ""
-SearchBar.TextColor3 = Color3.fromRGB(255, 255, 255)
-SearchBar.Font = Enum.Font.Gotham
-SearchBar.TextSize = 12
-Instance.new("UICorner", SearchBar).CornerRadius = UDim.new(0, 5)
-
-local CloseX = Instance.new("TextButton")
-CloseX.Name = "CloseX"
-CloseX.Parent = TopBar
-CloseX.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-CloseX.Position = UDim2.new(1, -35, 0, 10)
-CloseX.Size = UDim2.new(0, 25, 0, 25)
-CloseX.Text = "×"
-CloseX.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseX.TextSize = 20
-CloseX.Font = Enum.Font.GothamBold
-Instance.new("UICorner", CloseX).CornerRadius = UDim.new(0, 5)
-
--- [ 5. EMOTE GRID ]
-local EmoteGrid = Instance.new("ScrollingFrame")
-EmoteGrid.Parent = MainPanel
-EmoteGrid.BackgroundTransparency = 1
-EmoteGrid.Position = UDim2.new(0, 5, 0, 45)
-EmoteGrid.Size = UDim2.new(1, -10, 1, -55)
-EmoteGrid.CanvasSize = UDim2.new(0, 0, 0, 0)
-EmoteGrid.AutomaticCanvasSize = Enum.AutomaticSize.Y
-EmoteGrid.ScrollBarThickness = 2
-
-local layout = Instance.new("UIGridLayout", EmoteGrid)
-layout.CellSize = UDim2.new(0, 80, 0, 80)
-layout.CellPadding = UDim2.new(0, 8, 0, 8)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- [ 6. LOGIC INTEGRATION ]
-local function playEmote(id)
-    local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChild("Humanoid")
-    if hum then
-        local anim = Instance.new("Animation")
-        anim.AnimationId = "rbxassetid://" .. tostring(id)
-        local track = hum:LoadAnimation(anim)
-        track:Play()
+-- [ DRAGGABLE LOGIC ] - Hindi ko ginalaw ang logic mo rito
+local function makeDraggable(frame)
+    local dragging = false
+    local dragInput, dragStart, startPos
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+            input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or 
+            input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
 end
 
--- I-load ang emotes (Gamit ang source sa Emotes.txt mo)
-task.spawn(function()
-    local success, result = pcall(function()
-        return game:HttpGet("https://raw.githubusercontent.com/7yd7/sniper-Emote/refs/heads/test/EmoteSniper.json")
+-- [ UI SETUP ]
+local OpenEmoteMobile = Instance.new("ScreenGui")
+local button = Instance.new("ImageButton") -- Ginawa kong ImageButton para mas malinis
+local UICorner = Instance.new("UICorner")
+local UIStroke = Instance.new("UIStroke")
+local UIAspectRatioConstraint = Instance.new("UIAspectRatioConstraint")
+
+OpenEmoteMobile.IgnoreGuiInset = true
+OpenEmoteMobile.Name = "OpenEmote (Mobile)"
+OpenEmoteMobile.Parent = CoreGui
+OpenEmoteMobile.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- PRO LOOK: Circle Button
+button.Name = "button"
+button.Parent = OpenEmoteMobile
+button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+button.BackgroundTransparency = 0.2
+button.BorderSizePixel = 0
+button.Position = UDim2.new(0.5, 0, 0.1, 0)
+button.AnchorPoint = Vector2.new(0.5, 0.5)
+button.Size = UDim2.new(0, 50, 0, 50) -- Standard Circle Size
+button.ZIndex = 99999999
+button.Image = "rbxassetid://85867483111516"
+button.ImageColor3 = Color3.fromRGB(0, 255, 150) -- Pro Neon Green
+
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = button
+
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(0, 255, 150)
+UIStroke.Transparency = 0.5
+UIStroke.Parent = button
+
+UIAspectRatioConstraint.Parent = button
+UIAspectRatioConstraint.AspectRatio = 1.000
+
+-- [ HOVER & CLICK LOGIC ]
+local function setupEffects(btn)
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    
+    btn.MouseButton1Down:Connect(function()
+        TweenService:Create(btn, tweenInfo, {Size = UDim2.new(0, 45, 0, 45)}):Play()
     end)
     
-    if success then
-        local data = HttpService:JSONDecode(result).data
-        for _, v in pairs(data) do
-            local btn = Instance.new("TextButton")
-            btn.Name = v.name
-            btn.Text = v.name
-            btn.Parent = EmoteGrid
-            btn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-            btn.Font = Enum.Font.GothamMedium
-            btn.TextSize = 10
-            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-            
-            btn.MouseButton1Click:Connect(function() playEmote(v.id) end)
-        end
-    end
-end)
+    btn.MouseButton1Up:Connect(function()
+        TweenService:Create(btn, tweenInfo, {Size = UDim2.new(0, 50, 0, 50)}):Play()
+    end)
 
--- Search Function
-SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
-    local input = SearchBar.Text:lower()
-    for _, btn in pairs(EmoteGrid:GetChildren()) do
-        if btn:IsA("TextButton") then
-            btn.Visible = (input == "" or btn.Name:lower():find(input))
+    btn.MouseButton1Click:Connect(function()
+        local success, emotesMenu = pcall(function()
+            return CoreGui.RobloxGui.EmotesMenu.Children.Main.EmotesWheel
+        end)
+        
+        -- PRO TOGGLE: Imbes na mawala ang button, i-rotate natin o baguhin ang kulay
+        if success and emotesMenu then
+            local isVisible = emotesMenu.Visible
+            GuiService:SetEmotesMenuOpen(not isVisible)
+        else
+            GuiService:SetEmotesMenuOpen(true)
         end
-    end
-end)
-
--- [ 7. TOGGLE & DRAG FIX ]
-local function toggle()
-    MainPanel.Visible = not MainPanel.Visible
+    end)
 end
 
-MenuBtn.MouseButton1Click:Connect(toggle)
-CloseX.MouseButton1Click:Connect(function() MainPanel.Visible = false end)
+-- [ HEARTBEAT FIX ]
+-- Imbes na i-hide ang button (Visible = false), babaguhin lang natin ang itsura 
+-- para alam mong "Active" ang menu pero hindi mawawala ang control mo.
+RunService.Heartbeat:Connect(function()
+    local success, mainMenu = pcall(function()
+        return CoreGui.RobloxGui.EmotesMenu.Children.Main.EmotesWheel
+    end)
 
--- Smooth Mobile Drag
-local dragging, dragStart, startPos
-MenuBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging, dragStart, startPos = true, input.Position, MenuBtn.Position
+    if success and mainMenu and mainMenu.Visible then
+        -- Kapag bukas ang menu, mag-glow ang border (Pro Look)
+        UIStroke.Transparency = 0
+        button.ImageColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        -- Kapag sarado, balik sa default
+        UIStroke.Transparency = 0.5
+        button.ImageColor3 = Color3.fromRGB(0, 255, 150)
     end
 end)
-UIS.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        MenuBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UIS.InputEnded:Connect(function() dragging = false end)
+
+makeDraggable(button)
+setupEffects(button)
